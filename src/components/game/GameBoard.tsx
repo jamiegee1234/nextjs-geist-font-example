@@ -60,7 +60,7 @@ export default function GameBoard({ gameState, updateGameState }: GameBoardProps
     setGrid(newGrid);
   }, []);
 
-  // Draw grid and elements
+  // Draw grid and elements with enhanced graphics
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -68,12 +68,13 @@ export default function GameBoard({ gameState, updateGameState }: GameBoardProps
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Clear canvas with a subtle background
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw grid lines
+    // Draw enhanced grid lines with depth
     ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.5;
     
     for (let x = 0; x <= CANVAS_WIDTH; x += GRID_SIZE) {
       ctx.beginPath();
@@ -89,7 +90,7 @@ export default function GameBoard({ gameState, updateGameState }: GameBoardProps
       ctx.stroke();
     }
 
-    // Draw cells
+    // Draw enhanced cells with detailed graphics
     grid.forEach(row => {
       row.forEach(cell => {
         const x = cell.x * GRID_SIZE;
@@ -97,42 +98,163 @@ export default function GameBoard({ gameState, updateGameState }: GameBoardProps
 
         switch (cell.type) {
           case 'wall':
-            ctx.fillStyle = '#6B7280';
+            // Enhanced wall with brick texture effect
+            const gradient = ctx.createLinearGradient(x, y, x + GRID_SIZE, y + GRID_SIZE);
+            gradient.addColorStop(0, '#6B7280');
+            gradient.addColorStop(0.5, '#4B5563');
+            gradient.addColorStop(1, '#374151');
+            ctx.fillStyle = gradient;
             ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+            
+            // Add brick lines
+            ctx.strokeStyle = '#374151';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, y + GRID_SIZE/2);
+            ctx.lineTo(x + GRID_SIZE, y + GRID_SIZE/2);
+            ctx.stroke();
             break;
+            
           case 'cell':
-            ctx.fillStyle = '#1F2937';
+            // Enhanced prison cell with detailed interior
+            const cellGradient = ctx.createLinearGradient(x, y, x + GRID_SIZE, y + GRID_SIZE);
+            cellGradient.addColorStop(0, '#1F2937');
+            cellGradient.addColorStop(0.5, '#111827');
+            cellGradient.addColorStop(1, '#0F172A');
+            ctx.fillStyle = cellGradient;
             ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+            
+            // Cell bars effect
+            ctx.strokeStyle = '#6B7280';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+              const barX = x + 3 + (i * 5);
+              ctx.beginPath();
+              ctx.moveTo(barX, y + 2);
+              ctx.lineTo(barX, y + GRID_SIZE - 2);
+              ctx.stroke();
+            }
+            
+            // Cell border
             ctx.strokeStyle = '#9CA3AF';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
+            
+            // Add a small bed representation
+            if (!cell.hasPrisoner) {
+              ctx.fillStyle = '#4B5563';
+              ctx.fillRect(x + GRID_SIZE - 8, y + GRID_SIZE - 6, 6, 4);
+            }
+            break;
+            
+          case 'door':
+            // Enhanced door with handle and frame
+            const doorGradient = ctx.createLinearGradient(x, y, x + GRID_SIZE, y);
+            doorGradient.addColorStop(0, '#92400E');
+            doorGradient.addColorStop(0.5, '#B45309');
+            doorGradient.addColorStop(1, '#92400E');
+            ctx.fillStyle = doorGradient;
+            ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
+            
+            // Door handle
+            ctx.fillStyle = '#FCD34D';
+            ctx.beginPath();
+            ctx.arc(x + GRID_SIZE - 4, y + GRID_SIZE/2, 2, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Door frame
+            ctx.strokeStyle = '#451A03';
             ctx.lineWidth = 2;
             ctx.strokeRect(x, y, GRID_SIZE, GRID_SIZE);
-            break;
-          case 'door':
-            ctx.fillStyle = '#92400E';
-            ctx.fillRect(x, y, GRID_SIZE, GRID_SIZE);
             break;
         }
       });
     });
 
-    // Draw prisoners
+    // Draw enhanced prisoners with detailed graphics
     prisoners.forEach(prisoner => {
-      const x = prisoner.x * GRID_SIZE + GRID_SIZE / 2;
-      const y = prisoner.y * GRID_SIZE + GRID_SIZE / 2;
+      const centerX = prisoner.x * GRID_SIZE + GRID_SIZE / 2;
+      const centerY = prisoner.y * GRID_SIZE + GRID_SIZE / 2;
       
-      // Prisoner body
+      // Prisoner shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(centerX + 1, centerY + GRID_SIZE/3, GRID_SIZE/4, GRID_SIZE/6, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Prisoner body (torso)
+      const bodyColor = prisoner.mood === 'angry' ? '#DC2626' : 
+                       prisoner.mood === 'happy' ? '#059669' : '#D97706';
+      ctx.fillStyle = bodyColor;
+      ctx.fillRect(centerX - 4, centerY - 2, 8, 10);
+      
+      // Prisoner head
+      ctx.fillStyle = '#F3E8FF';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY - 6, 4, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Prisoner hair
+      ctx.fillStyle = '#374151';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY - 8, 3, 0, Math.PI, true);
+      ctx.fill();
+      
+      // Prisoner eyes
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(centerX - 1.5, centerY - 6, 0.5, 0, 2 * Math.PI);
+      ctx.arc(centerX + 1.5, centerY - 6, 0.5, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Mood indicator
       ctx.fillStyle = prisoner.mood === 'angry' ? '#EF4444' : 
                      prisoner.mood === 'happy' ? '#10B981' : '#F59E0B';
       ctx.beginPath();
-      ctx.arc(x, y, GRID_SIZE / 3, 0, 2 * Math.PI);
+      ctx.arc(centerX + 6, centerY - 8, 2, 0, 2 * Math.PI);
       ctx.fill();
       
-      // Prisoner number
+      // Prisoner arms
+      ctx.strokeStyle = bodyColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX - 4, centerY);
+      ctx.lineTo(centerX - 7, centerY + 3);
+      ctx.moveTo(centerX + 4, centerY);
+      ctx.lineTo(centerX + 7, centerY + 3);
+      ctx.stroke();
+      
+      // Prisoner legs
+      ctx.beginPath();
+      ctx.moveTo(centerX - 2, centerY + 8);
+      ctx.lineTo(centerX - 3, centerY + 12);
+      ctx.moveTo(centerX + 2, centerY + 8);
+      ctx.lineTo(centerX + 3, centerY + 12);
+      ctx.stroke();
+      
+      // Prisoner ID badge
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '10px Arial';
+      ctx.fillRect(centerX - 3, centerY + 1, 6, 3);
+      ctx.fillStyle = '#000000';
+      ctx.font = '8px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(prisoner.id.toString(), x, y + 3);
+      ctx.fillText(prisoner.id.toString(), centerX, centerY + 3);
+      
+      // Add prisoner name tooltip area (invisible but for future hover effects)
+      ctx.save();
+      ctx.globalAlpha = 0;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(centerX - 10, centerY - 15, 20, 8);
+      ctx.restore();
     });
+
+    // Add atmospheric effects
+    // Subtle lighting effect
+    const lightGradient = ctx.createRadialGradient(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, 0, CANVAS_WIDTH/2, CANVAS_HEIGHT/2, Math.max(CANVAS_WIDTH, CANVAS_HEIGHT));
+    lightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.02)');
+    lightGradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+    ctx.fillStyle = lightGradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   }, [grid, prisoners]);
 
